@@ -3,8 +3,8 @@
 
 ui.layout(
     <vertical weightSum="2">  
-        <scroll layout_weight="1" layout_height="0dp"> 
-            <text id="log" text="点开开始脚本开始程序" layout_width="match_parent" />
+        <scroll layout_weight="0.7" layout_height="0dp" margin="15dp"> 
+            <text id="log" text="点开开始脚本开始程序" layout_width="match_parent" textSize="16sp"/>
         </scroll>
 
         <linear layout_height="wrap_content" gravity="center">
@@ -12,16 +12,18 @@ ui.layout(
             <button id="end" text="结束脚本" />
             <button id = "check" text="查询土地状况"/>
         </linear>
-
-        <scroll layout_weight="1" layout_height="0dp">  
-            <text id="lowerText" text="....." layout_width="match_parent" />
+        <Switch id="chanChuList" text="      开启铲除萝卜苹果" checked="false" textSize="20sp" margin="10dp"/>
+        
+        <scroll layout_weight="1" layout_height="0dp" margin="15dp">  
+            <text id="lowerText" text="....." layout_width="match_parent" textSize="16sp"/>
         </scroll>
     </vertical>
 );
 
 
-let workerThread = null; // 用于保存子线程的引用
-let WaAppleLuo = false;
+let workerThread = null;    // 用于保存子线程的引用
+let WaAppleLuo = false;     // 用于是否挖萝卜苹果开关
+let WaLandList = ["萝卜","苹果"];            // 这里记录要挖的对象,方便后面更改
 // 返回时间字符串 日期 ➕ 当前时间
 function getLocalTime(){
     var result = ""
@@ -31,6 +33,15 @@ function getLocalTime(){
     result = date + " " +  time;
     return result
 }
+ui.chanChuList.on("check", function(checked) {
+    if(checked) {
+        WaAppleLuo = true;
+        toastLog("开启铲除")
+    }else{
+        WaAppleLuo = false;
+        toastLog("关闭铲除")
+    }
+});
 // 开始按钮点击事件
 ui.start.click(() => {
     if(scriptStart){
@@ -39,7 +50,7 @@ ui.start.click(() => {
     }
     //ui.log.setText("")
     //ui.log.append(message + "\n"); 
-    ui.log.append("\n脚本开始时间:"+getLocalTime() + '\n');
+    ui.log.append("脚本开始时间:"+getLocalTime() + '\n');
     // 在子线程中执行 starts
     workerThread = threads.start(function(){
         starts();
@@ -116,7 +127,7 @@ ui.check.click(()=>{
  * 
  */
 
-let clickWaitTime = 500 //点击等待时间
+let clickWaitTime = 300 //点击等待时间
 let waitTime = 60 * 60 // 最长等待重启时间(秒)
 let isClickKuangShang = false //是否进入过矿山
 let MaxLandNumber = -1 //拥有最大土地数量 遍历第一遍土地后变为确切的值
@@ -383,16 +394,21 @@ function todo5(){
         let landinfo = id("popup_text").findOne(clickWaitTime);
         if(landinfo){
             console.log(currentlandName + " "+ landinfo.text())
-            //铲除萝卜苹果
-            var t = landinfo.text();
-            if(t.includes('苹果') || t.includes("萝卜")){
-                var chanchu = id("land_chanchu").findOne(clickWaitTime);
-                if(chanchu){
-                    chanchu.click();
-                    //增加铲除的信息
-                    landChanChu_Number[currentlandName]++;
+            if(WaAppleLuo){
+                //铲除萝卜苹果
+                var t = landinfo.text();
+                // todo
+                for(var index in WaLandList){
+                    if(t.includes(WaLandList[index])){
+                        var chanchu = id("land_chanchu").findOne(clickWaitTime);
+                        if(chanchu){
+                            chanchu.click();
+                            //增加铲除的信息
+                            landChanChu_Number[currentlandName]++;
+                        }
+                        return;
+                    }
                 }
-                return;
             }
             if(hasTime(landinfo.text())){
                let time = parseTimeToSeconds(landinfo.text());
