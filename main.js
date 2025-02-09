@@ -13,6 +13,7 @@ ui.layout(
             <button id = "check" text="查询土地状况"/>
         </linear>
         <Switch id="chanChuList" text="      开启铲除萝卜苹果" checked="false" textSize="20sp" margin="10dp"/>
+        <Switch id="isShiFei" text="      开启施肥" checked="false" textSize="20sp" margin="10dp"/>
         
         <scroll layout_weight="1" layout_height="0dp" margin="15dp">  
             <text id="lowerText" text="....." layout_width="match_parent" textSize="16sp"/>
@@ -24,6 +25,9 @@ ui.layout(
 let workerThread = null;    // 用于保存子线程的引用
 let WaAppleLuo = false;     // 用于是否挖萝卜苹果开关
 let WaLandList = ["萝卜","苹果"];            // 这里记录要挖的对象,方便后面更改
+let IsShiFei = false;       // 用于记录是否要施肥开关
+let ShiFeiList = ["木瓜","南瓜","草莓"];    //要施肥的植物列表
+let dialogSure = true;          // 当前是否可以点击确定
 // 返回时间字符串 日期 ➕ 当前时间
 function getLocalTime(){
     var result = ""
@@ -42,6 +46,15 @@ ui.chanChuList.on("check", function(checked) {
         toastLog("关闭铲除")
     }
 });
+ui.isShiFei.on("check",function(checked){
+    if(checked){
+        IsShiFei = true;
+        toastLog("开启施肥")
+    }else{
+        IsShiFei =false;
+        toastLog("关闭施肥")
+    }
+})
 // 开始按钮点击事件
 ui.start.click(() => {
     if(scriptStart){
@@ -208,6 +221,7 @@ function loop(){
         }
     }
 }
+
 function starts(){
     varInit() //初始化变量
     getJurisdiction(); //获取权限
@@ -215,7 +229,7 @@ function starts(){
     
     console.show()
     console.warn("当前程序需要开启无障碍模式,悬浮窗权限,以及读取应用列表权限")
-    console.log("1.程序作用是农场自动收割种植\n,\
+    console.log("1.程序作用是农场自动收割种植\n\
                  \n2.自动产出发芽后的萝卜苹果\n,请谨慎使用")
     sleep(3000);
     console.info("程序有任何问题请联系我qq: 3084291707");
@@ -224,18 +238,6 @@ function starts(){
     console.log("按动音量上下键会停止脚本,如果没有效果就多按动几下")
     sleep(2000)
     home();
-    //异步实时监听
-    let MusicSound = device.getMusicVolume() //当前音量作为关闭脚本的条件
-    // 开启一个定时器，每隔一段时间检查银量
-    setInterval(() => {
-        if (device.getMusicVolume() != MusicSound) {
-            device.cancelKeepingAwake() //取消屏幕长亮
-            console.log("脚本已关闭....");
-            toast("脚本已关闭,关闭悬浮窗即可");
-            console.hide();
-            exit();
-        }
-    }, 500);
     
     loop()
 }
@@ -253,7 +255,7 @@ function currentPage(){
         text("聊天").exists() && text("我的").exists()) 
         return 3
     //4.农场打开等待点击确认
-    if(id("dialog_sure").exists()) 
+    if(id("dialog_sure").exists() && dialogSure ) 
         return 4
     //5.当前页面在农场
     if(id("farm_land_1_click").exists() && id("farm_kuangshan").exists())
@@ -266,6 +268,8 @@ function currentPage(){
         return 7
     if(text("开始脚本").exists() && text("结束脚本").exists())
         return 8;
+    if(text("选择化肥").exists())
+        return 9;
     return null
 }
 function todoNext(number){
@@ -299,10 +303,11 @@ function todoNext(number){
         case 8:
             todo8();
             break;
+        case 9:
+            todo9();
     }
     return true
 }
-
 
 function varInit(){
     //保持屏幕常亮，但允许屏幕变暗来节省电量。 如果此函数调用时屏幕没有点亮，则会唤醒屏幕。
@@ -338,6 +343,7 @@ function todo4(){
         clickIDobjectBounds("我知道-确认","dialog_sure",clickWaitTime)
 }
 //5.当前页面在农场
+let lastLandInfo = "";
 function todo5(){
     //设置所有窗口选择
     auto.setWindowFilter(function(window){
@@ -392,12 +398,12 @@ function todo5(){
         //3.如果当前土地已经有蔬菜正在种植
         //当前种子还在发芽阶段，那么他就不会显示铲除，会显示发芽倒计时和施肥
         let landinfo = id("popup_text").findOne(clickWaitTime);
-        if(landinfo){
+        if(landinfo){ 
             console.log(currentlandName + " "+ landinfo.text())
+            var t = landinfo.text();
+            var time = hasTime(t) ? parseTimeToSeconds(t) : null; 
             if(WaAppleLuo){
                 //铲除萝卜苹果
-                var t = landinfo.text();
-                // todo
                 for(var index in WaLandList){
                     if(t.includes(WaLandList[index])){
                         var chanchu = id("land_chanchu").findOne(clickWaitTime);
@@ -410,8 +416,20 @@ function todo5(){
                     }
                 }
             }
-            if(hasTime(landinfo.text())){
-               let time = parseTimeToSeconds(landinfo.text());
+
+            var shifei = id("land_shifei").findOne(clickWaitTime)
+            if(IsShiFei && !t.includes("发芽") && shifei){
+                //对列表内水果施肥
+                for(var index in ShiFeiList){
+                    if(t.includes(ShiFeiList[index])){
+                        dialogSure = false;
+                        //点击施肥
+                        if(shifei) shifei.click();
+                        currentClickLand++;
+                    }
+                }
+            }
+            if(time != null){
                waitTime = waitTime > time ? time : waitTime; 
             }
             currentClickLand++;
@@ -471,6 +489,22 @@ function todo7(){
 function todo8(){
     sleep(2000);
     return;
+}
+//当前页面是农场内选择化肥
+function todo9(){
+    if(!IsShiFei) return;
+    dialogSure = true;
+    // 选择普通化肥
+    let putong = id("radio_putong").findOne(clickWaitTime);
+    if(putong){
+        console.log(putong.text())
+        putong.click();
+        waitTime -= 60 * 60 * 3;
+    }else{
+        // 没有普通化肥就取消
+        var cancel = id("dialog_cancel").findOne(clickWaitTime);
+        if(cancel) cancel.click();
+    }
 }
 
 
