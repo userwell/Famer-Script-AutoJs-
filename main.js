@@ -4,7 +4,7 @@
 ui.layout(
     <vertical weightSum="2">  
         <scroll layout_weight="0.7" layout_height="0dp" margin="15dp"> 
-            <text id="log" text="点开开始脚本开始程序" layout_width="match_parent" textSize="16sp"/>
+            <text id="log" text="点开开始脚本开始程序\n" layout_width="match_parent" textSize="16sp"/>
         </scroll>
 
         <linear layout_height="wrap_content" gravity="center">
@@ -13,7 +13,7 @@ ui.layout(
             <button id = "check" text="查询土地状况"/>
         </linear>
         <Switch id="chanChuList" text="      开启铲除萝卜苹果" checked="false" textSize="20sp" margin="10dp"/>
-        <Switch id="isShiFei" text="      开启施肥" checked="false" textSize="20sp" margin="10dp"/>
+        <Switch id="isShiFei" text="      桂圆施肥" checked="false" textSize="20sp" margin="10dp"/>
         
         <scroll layout_weight="1" layout_height="0dp" margin="15dp">  
             <text id="lowerText" text="....." layout_width="match_parent" textSize="16sp"/>
@@ -26,7 +26,7 @@ let workerThread = null;    // 用于保存子线程的引用
 let WaAppleLuo = false;     // 用于是否挖萝卜苹果开关
 let WaLandList = ["萝卜","苹果"];            // 这里记录要挖的对象,方便后面更改
 let IsShiFei = false;       // 用于记录是否要施肥开关
-let ShiFeiList = ["木瓜","南瓜","草莓"];    //要施肥的植物列表
+let ShiFeiList = ["桂圆"];    //要施肥的植物列表
 let dialogSure = true;          // 当前是否可以点击确定
 // 返回时间字符串 日期 ➕ 当前时间
 function getLocalTime(){
@@ -57,6 +57,8 @@ ui.isShiFei.on("check",function(checked){
 })
 // 开始按钮点击事件
 ui.start.click(() => {
+    console.hide();
+    console.show(); 
     if(scriptStart){
         ui.log.append("当前脚本正在运行,请不要重复运行,请先关闭脚本....\n");
         return;
@@ -68,9 +70,6 @@ ui.start.click(() => {
     workerThread = threads.start(function(){
         starts();
     })
-    // threads.start(function() {
-    //     starts();
-    // });
 });
 
 // 结束按钮点击事件
@@ -142,7 +141,6 @@ ui.check.click(()=>{
 
 let clickWaitTime = 300 //点击等待时间
 let waitTime = 60 * 60 // 最长等待重启时间(秒)
-let isClickKuangShang = false //是否进入过矿山
 let MaxLandNumber = -1 //拥有最大土地数量 遍历第一遍土地后变为确切的值
 let currentClickLand = 1 //当前正在点击的土地对象
 let isAppSleep = false //用来设置当前app是否可以睡眠
@@ -229,14 +227,9 @@ function starts(){
     
     console.show()
     console.warn("当前程序需要开启无障碍模式,悬浮窗权限,以及读取应用列表权限")
-    console.log("1.程序作用是农场自动收割种植\n\
-                 \n2.自动产出发芽后的萝卜苹果\n,请谨慎使用")
-    sleep(3000);
     console.info("程序有任何问题请联系我qq: 3084291707");
     console.warn("该产品请不要传播,后果自负！！")
     sleep(2000);
-    console.log("按动音量上下键会停止脚本,如果没有效果就多按动几下")
-    sleep(2000)
     home();
     
     loop()
@@ -313,7 +306,6 @@ function varInit(){
     //保持屏幕常亮，但允许屏幕变暗来节省电量。 如果此函数调用时屏幕没有点亮，则会唤醒屏幕。
     device.keepScreenDim() 
     waitTime = 60 * 60 
-    isClickKuangShang = false 
     MaxLandNumber = -1
     currentClickLand = 1 
     isAppSleep = false 
@@ -351,12 +343,6 @@ function todo5(){
         return true;
         //return window.title == "弹出式窗口"
     });
-    if(!isClickKuangShang){
-        //id("farm_kuangshan").findOne()
-        clickIDobject("矿山","farm_kuangshan",clickWaitTime)
-        isClickKuangShang = true
-        return 
-    }
     //currentlandName = currentClickLand % MaxLandNumber
     let idName = "farm_land_"+currentClickLand+"_click"
     let currentlandName = "第 "+currentClickLand+" 块土地"
@@ -464,8 +450,6 @@ function todo5(){
 
 //6.当前页面在矿山
 function todo6(){
-    //进入矿石设置为true
-    isClickKuangShang = true
     //点击领取 id("farmer_mining_receive_tv")
     clickIDobject("种子领取","farmer_mining_receive_tv",clickWaitTime)
     //点击我的家园id("farm_back_mine_farm_img")
