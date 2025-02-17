@@ -310,6 +310,7 @@ function varInit(){
     currentClickLand = 1 
     isAppSleep = false 
     scriptStart = true;
+    dialogSure = true;
 }
 // =========================
 
@@ -412,6 +413,7 @@ function todo5(){
                         //点击施肥
                         if(shifei) shifei.click();
                         currentClickLand++;
+                        todo9();
                     }
                 }
             }
@@ -478,7 +480,7 @@ function todo8(){
 function todo9(){
     if(!IsShiFei) return;
     dialogSure = true;
-    // 选择普通化肥
+    // 选择普通化肥1
     let putong = id("radio_putong").findOne(clickWaitTime);
     if(putong){
         console.log(putong.text())
@@ -634,7 +636,6 @@ function RecordFruitQuantity(title){
             let number = title.match(/-?\d+/);
             fruitNumberDict[key] = parseInt(fruitNumberDict[key]) + parseInt(number);
             console.log("获得水果品种:" + key + ",数量:" + number + "个");
-
         }
     }
 }
