@@ -4,7 +4,7 @@
 ui.layout(
     <vertical weightSum="2">  
         <scroll layout_weight="0.7" layout_height="0dp" margin="15dp"> 
-            <text id="log" text="点开开始脚本开始程序\n" layout_width="match_parent" textSize="16sp"/>
+            <text id="log" text="点击开始脚本开始程序\n" layout_width="match_parent" textSize="16sp"/>
         </scroll>
 
         <linear layout_height="wrap_content" gravity="center">
@@ -13,7 +13,7 @@ ui.layout(
             <button id = "check" text="查询土地状况"/>
         </linear>
         <Switch id="chanChuList" text="      开启铲除萝卜苹果" checked="false" textSize="20sp" margin="10dp"/>
-        <Switch id="isShiFei" text="      桂圆施肥" checked="false" textSize="20sp" margin="10dp"/>
+        <Switch id="isShiFei" text="      南瓜,草莓施肥" checked="false" textSize="20sp" margin="10dp"/>
         
         <scroll layout_weight="1" layout_height="0dp" margin="15dp">  
             <text id="lowerText" text="....." layout_width="match_parent" textSize="16sp"/>
@@ -25,8 +25,8 @@ ui.layout(
 let workerThread = null;    // 用于保存子线程的引用
 let WaAppleLuo = false;     // 用于是否挖萝卜苹果开关
 let WaLandList = ["萝卜","苹果"];            // 这里记录要挖的对象,方便后面更改
+let ShiFeiList = ["南瓜","草莓"];    //要施肥的植物列表
 let IsShiFei = false;       // 用于记录是否要施肥开关
-let ShiFeiList = ["桂圆"];    //要施肥的植物列表
 let dialogSure = true;          // 当前是否可以点击确定
 // 返回时间字符串 日期 ➕ 当前时间
 function getLocalTime(){
@@ -57,12 +57,12 @@ ui.isShiFei.on("check",function(checked){
 })
 // 开始按钮点击事件
 ui.start.click(() => {
-    console.hide();
-    console.show(); 
     if(scriptStart){
         ui.log.append("当前脚本正在运行,请不要重复运行,请先关闭脚本....\n");
         return;
     }
+    console.hide();
+    console.show(); 
     //ui.log.setText("")
     //ui.log.append(message + "\n"); 
     ui.log.append("脚本开始时间:"+getLocalTime() + '\n');
@@ -93,6 +93,7 @@ ui.end.click(() => {
 ui.check.click(()=>{
     ui.lowerText.setText(""); // 更新下部文本
     ui.lowerText.append("当前共使用种子: " + String(zhongZiNumber) + " 个\n");
+    ui.lowerText.append("\n=======================\n");
     //每块土地铲除的次数
     ui.lowerText.append("土地铲除 萝卜/苹果 次数记录\n");
     var t = 0;
@@ -102,22 +103,36 @@ ui.check.click(()=>{
     }
     ui.lowerText.append("一共铲除: " + t +" 次\n");
 
-    ui.lowerText.append("================\n");
-    //每块土地种出木瓜的次数
+    ui.lowerText.append("\n=======================\n");
+    //每块土地种出草莓 南瓜的次数
     var c = 0;
-    ui.lowerText.append("每块土地种出木瓜的次数\n");
-    for(let k in landIsMuGuaNumber){
-        ui.lowerText.append(k + "种出木瓜: "+String(landIsMuGuaNumber[k]) + "次\n");
-        c += landIsMuGuaNumber[k];
+    ui.lowerText.append("每块土地种出南瓜/草莓的次数\n");
+    for(let k in landIsCaomeiNangua_number){
+        ui.lowerText.append(k + "种出: "+String(landIsCaomeiNangua_number[k]) + "次\n");
+        c += landIsCaomeiNangua_number[k];
     }
-    ui.lowerText.append("一共出过木瓜:"+ c + "次\n");
+    ui.lowerText.append("一共出过:"+ c + "次\n");
+    ui.lowerText.append("出 草莓/南瓜 的概率为: " + String(parseFloat(c/zhongZiNumber) * 100) + "%\n");
+    ui.lowerText.append("\n=======================\n");
+
+    ui.lowerText.append("每块土地种出 西瓜/辣椒 的次数\n");
+    c = 0;
+    for(let k in landIsLajiaoXigua_number){
+        ui.lowerText.append(k + "种出: "+String(landIsLajiaoXigua_number[k]) + "次\n");
+        c += landIsLajiaoXigua_number[k];
+    }
+    ui.lowerText.append("一共出过:"+ c + "次\n");
+    ui.lowerText.append("出 辣椒/西瓜 的概率为: " + String(parseFloat(c/zhongZiNumber) * 100) + "%\n");
+    ui.lowerText.append("=======================\n");
+
     //打印水果收获
     ui.lowerText.append("-----本次脚本水果收获----\n");
     for(let key in fruitNumberDict){
         ui.lowerText.append(key+":"+ String(fruitNumberDict[key]) + "个\n");
     }
     ui.lowerText.append("-----------------\n");
-    ui.lowerText.append("出木瓜的概率为: " + String(parseFloat(c/zhongZiNumber) * 100) + "%\n");
+    ui.lowerText.append("土地收割时间:");
+    ui.lowerText.append(landGetInfo);
 })
 /**
  * 1.有时候屏幕显示了控件，但是使用查找的方法找不到，
@@ -146,9 +161,11 @@ let currentClickLand = 1 //当前正在点击的土地对象
 let isAppSleep = false //用来设置当前app是否可以睡眠
 
 let zhongZiNumber = 0;  //记录种子使用的数量
-let fruitNumberDict = {'西瓜':0,'苹果':0,'萝卜':0,'辣椒':0,'木瓜':0} //用来记录收获的水果数量
+let landGetInfo = "";   //土地收割记录(时间+目标土地+品种+数量)
+let fruitNumberDict = {'苹果':0,'萝卜':0,'辣椒':0,'西瓜':0,'木瓜':0,'草莓':0,'南瓜':0} //用来记录收获的水果数量
 let landChanChu_Number = {};            //记录土地铲除苹果 萝卜的次数
-let landIsMuGuaNumber = {};             //记录土地是木瓜的次数
+let landIsCaomeiNangua_number = {};     //记录土地是草莓南瓜次数
+let landIsLajiaoXigua_number = {};      //记录土地是辣椒西瓜次数
 let scriptStart = false;
 //获取权限
 function getJurisdiction(){
@@ -231,7 +248,6 @@ function starts(){
     console.warn("该产品请不要传播,后果自负！！")
     sleep(2000);
     home();
-    
     loop()
 }
 //返回当前属于哪一个页面
@@ -348,7 +364,8 @@ function todo5(){
     let idName = "farm_land_"+currentClickLand+"_click"
     let currentlandName = "第 "+currentClickLand+" 块土地"
     //初始化俩个字典表
-    if(!(currentlandName in landIsMuGuaNumber) ) landIsMuGuaNumber[currentlandName] = 0;
+    if(!(currentlandName in landIsCaomeiNangua_number) ) landIsCaomeiNangua_number[currentlandName] = 0;
+    if(!(currentlandName in landIsLajiaoXigua_number) ) landIsLajiaoXigua_number[currentlandName] = 0;
     if(!(currentlandName in landChanChu_Number)) landChanChu_Number[currentlandName] = 0;
 
     if(clickIDobjectBounds(currentlandName,idName,clickWaitTime)){
@@ -375,8 +392,10 @@ function todo5(){
             let s = id("dialog_content").findOne(clickWaitTime + 1000);
             if(s){
                 let title = s.text();
-                if(title.includes("木瓜"))
-                    landIsMuGuaNumber[currentlandName]++;
+                if(title.includes("草莓") || title.includes("南瓜"))
+                    landIsCaomeiNangua_number[currentlandName]++;
+                if(title.includes('辣椒') || title.includes('西瓜'))
+                    landIsLajiaoXigua_number[currentlandName]++;
                 RecordFruitQuantity(title);
             }
             return;
@@ -636,6 +655,10 @@ function RecordFruitQuantity(title){
             let number = title.match(/-?\d+/);
             fruitNumberDict[key] = parseInt(fruitNumberDict[key]) + parseInt(number);
             console.log("获得水果品种:" + key + ",数量:" + number + "个");
+            //ui.log.append(getLocalTime() +" 获得水果品种:" + key + ",数量:" + number + "个\n" );
+
+            landGetInfo += getLocalTime() + "->获得水果品种: " + key + ",数量:" + number + "个\n";
+            return;
         }
     }
 }
